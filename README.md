@@ -23,10 +23,11 @@ Phase 2 backend verification: `.\mvnw.cmd test` passed all 59 tests. Phase 3 fro
 - JDK 17 or newer
 - Internet access the first time Maven downloads dependencies
 - Node.js and npm
+- Docker Compose v2 for the optional PostgreSQL setup
 
 ## Open in an IDE
 
-Open the `E-Commerce` directory (the one containing `pom.xml`) in IntelliJ IDEA or VS Code. In IntelliJ, import it as a Maven project. In VS Code, install the Java Extension Pack and open the Maven project.
+Open the `E-Commerce` directory (the one containing `pom.xml`) as a Maven project in IntelliJ IDEA or Eclipse.
 
 ## Run the backend
 
@@ -69,6 +70,24 @@ The `dev` profile uses an in-memory H2 database named `ecommercedb` with `create
 
 The dev profile seeds an administrator with `admin@storestack.local` / `Admin12345` and sample categories and products. Override the administrator with `DEV_ADMIN_EMAIL` and `DEV_ADMIN_PASSWORD` if needed. Do not use development credentials or the dev signing key in production.
 
+## PostgreSQL with Docker Compose
+
+The Compose file starts PostgreSQL only; run the Spring Boot application separately. Docker Compose reads `DB_USERNAME` and `DB_PASSWORD` from the process environment or an optional, untracked root `.env` file. The default `dev` profile uses H2 and does not require environment variables.
+
+Start the database:
+
+```sh
+docker compose --profile prod up -d postgres
+```
+
+To run the backend with the `prod` profile, set `SPRING_PROFILES_ACTIVE=prod` and the `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, and `FRONTEND_ORIGIN` variables in the IDE run configuration. The Spring application does not automatically load `.env`; Compose uses it for the database container. Use `DB_URL=jdbc:postgresql://localhost:5432/storestack` when the backend runs on the host machine.
+
+Stop the database container while preserving its data volume:
+
+```sh
+docker compose --profile prod down
+```
+
 ## Run the frontend
 
 From the `frontend` directory:
@@ -78,7 +97,7 @@ npm install
 npm run dev
 ```
 
-Set `VITE_API_URL` in a local `.env` file to the backend API base URL. The example is `http://localhost:8080/api`; the frontend dev server uses port `5173`. The committed `.env.example` shows the expected variable. The frontend build can be checked with:
+The frontend API defaults to `http://localhost:8080/api`; set `VITE_API_URL` in an optional local `.env` file only if you use a different backend URL. No environment file is needed for the default local setup. The frontend dev server uses port `5173`. The frontend build can be checked with:
 
 ```sh
 npm run build
@@ -107,3 +126,11 @@ npm test
 ```
 
 Verified in this workspace: 5 frontend tests passed, covering login/logout session persistence, refresh-token retry and failure handling, and cart quantity and clearing behavior.
+
+## Architecture
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the application layers, authentication and token rotation, checkout and stock handling, and database tables.
+
+## Verification notes
+
+The backend tests use H2. The PostgreSQL Compose file passed `docker compose --profile prod config`; no PostgreSQL container was started. IDE-specific run instructions are provided, but IntelliJ IDEA and Eclipse were not launched or tested in this environment. The backend and frontend servers were not started.
